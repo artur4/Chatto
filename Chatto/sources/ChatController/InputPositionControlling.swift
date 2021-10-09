@@ -25,12 +25,10 @@ import UIKit
 
 public protocol InputPositionControlling: AnyObject {
 
-    var keyboardStatus: KeyboardStatus { get }
-
-    var inputBarContainer: UIView! { get }
+    var inputBarContainer: UIView { get }
     var maximumInputSize: CGSize { get }
 
-    var inputContentContainer: UIView! { get }
+    var inputContentContainer: UIView { get }
     var inputContentBottomMargin: CGFloat { get }
 
     func changeInputContentBottomMarginTo(_ newValue: CGFloat, animated: Bool, callback: (() -> Void)?)

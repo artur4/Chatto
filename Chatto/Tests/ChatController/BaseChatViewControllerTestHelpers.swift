@@ -34,25 +34,42 @@ func createFakeChatItems(count: Int) -> [ChatItemProtocol] {
 }
 
 final class TesteableChatViewController: BaseChatViewController {
-    let presenterBuilders: [ChatItemType: [ChatItemPresenterBuilderProtocol]]
-    let chatInputView = UIView()
-    init(configuration: BaseChatViewController.Configuration = .default,
-         presenterBuilders: [ChatItemType: [ChatItemPresenterBuilderProtocol]] = [ChatItemType: [ChatItemPresenterBuilderProtocol]]()) {
-        self.presenterBuilders = presenterBuilders
 
-        super.init(configuration: configuration)
+    private let fakeChatInputBarPresenter: FakeChatInputBarPresenter
+    var chatInputView: UIView { self.fakeChatInputBarPresenter.inputView }
+
+    init(messagesViewController: ChatMessagesViewController,
+         configuration: BaseChatViewController.Configuration = .default,
+         notificationCenter: NotificationCenter = .default) {
+
+        self.fakeChatInputBarPresenter = FakeChatInputBarPresenter(inputView: UIView())
+
+        let keyboardTracker = KeyboardTracker(notificationCenter: notificationCenter)
+        let keyboardUpdatesHandler = KeyboardUpdatesHandler(keyboardTracker: keyboardTracker)
+
+        super.init(
+            inputBarPresenter: self.fakeChatInputBarPresenter,
+            messagesViewController: messagesViewController,
+            collectionViewEventsHandlers: [],
+            keyboardUpdatesHandler: keyboardUpdatesHandler,
+            viewEventsHandlers: [],
+            configuration: configuration
+        )
+        keyboardUpdatesHandler.keyboardInputAdjustableViewController = self
+
+        keyboardUpdatesHandler.keyboardInfo.observe(self) { [weak self] _, keyboardInfo in
+            self?.changeInputContentBottomMarginTo(keyboardInfo.bottomMargin)
+        }
     }
 
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
+}
 
-    override func createPresenterBuilders() -> [ChatItemType: [ChatItemPresenterBuilderProtocol]] {
-        return self.presenterBuilders
-    }
-
-    override func createChatInputView() -> UIView {
-        return self.chatInputView
+final class FakeChatItemsDecorator: ChatItemsDecoratorProtocol {
+    func decorateItems(_ chatItems: [ChatItemProtocol]) -> [DecoratedChatItem] {
+        return chatItems.map { DecoratedChatItem(chatItem: $0, decorationAttributes: nil) }
     }
 }
 
@@ -62,7 +79,13 @@ final class FakeDataSource: ChatDataSourceProtocol {
     var wasRequestedForPrevious = false
     var wasRequestedForMessageCountContention = false
     var chatItemsForLoadNext: [ChatItemProtocol]?
-    var chatItems = [ChatItemProtocol]()
+    var chatItems = [ChatItemProtocol]() {
+        didSet {
+            self.delegate?.chatDataSourceDidUpdate(self)
+        }
+    }
+    var onDidUpdate: (() -> Void)?
+
     weak var delegate: ChatDataSourceDelegateProtocol?
 
     func loadNext() {
@@ -216,4 +239,26 @@ final class FakePresenter: ChatItemPresenterProtocol {
         let fakeCell = cell as! FakeCell
         fakeCell.backgroundColor = UIColor.red
     }
+}
+
+private final class FakeChatInputBarPresenter: BaseChatInputBarPresenterProtocol {
+    let inputView: UIView
+
+    weak var viewController: ChatInputBarPresentingController? {
+        didSet {
+            guard let viewController = self.viewController else { return }
+
+            viewController.setup(inputView: self.inputView)
+        }
+    }
+
+    init(inputView: UIView) {
+        self.inputView = inputView
+    }
+
+    func onViewDidUpdate() { }
+}
+
+private final class FakeChatViewControllerViewModel: BaseChatViewControllerViewModelProtocol {
+    var onDidUpdate: (() -> Void)?
 }
