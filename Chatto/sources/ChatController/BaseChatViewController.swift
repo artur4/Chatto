@@ -195,10 +195,7 @@ open class BaseChatViewController: UIViewController,
     override open func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
 
-        UIView.animate(withDuration: 0.25) {
-            self.adjustCollectionViewInsets(shouldUpdateContentOffset: true)
-        }
-        
+        self.adjustCollectionViewInsets(shouldUpdateContentOffset: true)
         self.keyboardTracker.adjustTrackingViewSizeIfNeeded()
 
         if self.isFirstLayout {
