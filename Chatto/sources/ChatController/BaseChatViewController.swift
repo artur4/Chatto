@@ -198,7 +198,9 @@ open class BaseChatViewController: UIViewController,
     override open func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
 
-        self.adjustCollectionViewInsets(shouldUpdateContentOffset: true)
+        UIView.animate(withDuration: 0.25) {
+            self.adjustCollectionViewInsets(shouldUpdateContentOffset: true)
+        }
         self.keyboardUpdatesHandler.adjustLayoutIfNeeded()
 
         self.updateInputContainerBottomBaseOffset()
